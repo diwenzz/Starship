@@ -1,9 +1,17 @@
+import ddf.minim.*;
+import ddf.minim.analysis.*;
+import ddf.minim.effects.*;
+import ddf.minim.signals.*;
+import ddf.minim.spi.*;
+import ddf.minim.ugens.*;
+
 /*
 5-11-2018
  Starship gmaes
  @Diwen Wang
  TO_DO: 
- -Switching gamestate
+ -moving ship
+ -background music
  
  */
 
@@ -13,7 +21,8 @@ int gameState = 0;
 int gameLevel = 1;
 int currentFrame = 0;
 PVector mouse; 
-PFont font;
+PFont font1;
+PFont font2;
 
 //<Starship Variables>
 PVector tPos;  //turret position of the ship
@@ -23,6 +32,8 @@ PVector sDir;  //ship direction in game (not necesary)
 int sSize = 100;  //ship size
 int tSize = 20;  //turrent size
 int shield = 200;  //shield capacity
+int sSpdx = 0;  //ship x speed
+int sSpdy = 0;  //ship y speed
 
 //<Enemy Variables>
 PVector ePos;  //enemy positon
@@ -36,14 +47,16 @@ int spawnRate = 60;
 
 
 void setup() {  //basic game set-up
-  fullScreen();
+  fullScreen(P3D);
   init();
   imageMode(CENTER);
 }
 
 void init() {  //initialize preload variables
-  font = loadFont("HarlowSolid-48.vlw");
-  textFont(font, 70);
+  font1 = loadFont("HarlowSolid-48.vlw");
+  font2 = loadFont("Corbel-BoldItalic-48.vlw");
+
+  sPos = new PVector (width/2, height/2);
 }
 
 void preGame() {  //loading pregame scene and bgm-->minim
@@ -53,11 +66,11 @@ void preGame() {  //loading pregame scene and bgm-->minim
   image(bgUni, 0, 0, width * 2, height * 2);  //background image of universe
   image(bgShip, width/2, height/2, 1098, 725);  //background image of ship
 
-  fill(125);
-  text("Starship", width/2 + 200, height/2 + 200);  
-  text("Press \'ENTER\' to play", width/2 + 200, height/2 + 250, 30);  //text the information of the game 
-  text(gameState, width/2 + 200, height/2 + 320);  //text the value of the game state 
-
+  fill(0, 150, 200);
+  textFont(font1, 100);
+  text("Starship", width/2 + 200, height/2 + 200);
+  textFont(font2, 70);
+  text("PRESS \'ENTER\' TO PLAY", width/2 - 100, height/2 + 350);  //text the information of the game 
 
   if (keyPressed && key == ENTER) {
     gameState += 1;
@@ -70,30 +83,47 @@ void spawnEnemy() {  //spawning enemy, running when game() is called
 void mouseClicked() {
 }
 
+void checkHit() {
+}
+
+boolean checkHit(PVector pos1, float size1, PVector pos2, float size2) {
+  return PVector.dist(pos1, pos2) < (size1 + size2)/2;
+}  //check hit, not done yet
+
 void game() {  //loading playing state
-  boolean gameNotPause = true;  //check if the game was paused
+  //boolean gameNotPause = true;  //check if the game was paused
 
   background (255);
-  text(gameState, width/2 + 200, height/2 + 300);
-  text(height, width/2, height/2);
-
-  if (gameNotPause) {  //if the game is not paused 
-
-    //spawnEnemy and drawing enemy
-    spawnEnemy();
-
-    //drawing starship and turret
-    PImage ship = loadImage("starship/starship.png");  //loading the ship of player image
-    PImage turret = loadImage("turret/turret.png");  //loading the turret of the ship image
-    image(ship, 0, 0, 600, 600);  //displaying the ship
-    image(turret, width/2, height/2, 300, 300);   //displaying the turret
-
-    //hit detection
 
 
-    //gamelevel
-  } else if (!gameNotPause) {  //if the game is paused
+  //if (gameNotPause) {  //if the game is not paused 
+
+  //spawnEnemy and drawing enemy
+  spawnEnemy();
+
+  //drawing starship and turret
+  PImage ship = loadImage("starship/ship01.png");  //loading the ship of player image
+  //PImage turret = loadImage("turret/turret.png");  //loading the turret of the ship image
+  image(ship, sPos.x, sPos.y, 192, 256);  //displaying the ship
+  //image(turret, width/2, height/2, 300, 300);   //displaying the turret
+
+  //moving ship
+  if (keyPressed && key == 'W') {
+    sPos.y -= 20;
+  } else if (keyPressed && key == 'S') {
+    sPos.y += 20;
+  } else if (keyPressed && key == 'A') {
+    sPos.x -= 20;
+  } else if (keyPressed && key == 'D') {
+    sPos.x += 20;
   }
+
+  //hit detection
+
+
+  //gamelevel
+  //} else if (!gameNotPause) {  //if the game is paused
+  //}
 }
 
 void gameOver() {  //loading gameover scene
