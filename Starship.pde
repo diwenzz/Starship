@@ -6,18 +6,19 @@ import ddf.minim.spi.*;
 import ddf.minim.ugens.*;
 
 /*
-5-11-2018
+5-14-2018
  Starship gmaes
  @Diwen Wang
  TO_DO: 
  -moving ship
- -background music
+ -spawn enemy and detect hit
+ -score chech
  
  */
 
 
 //<System Variables>
-int gameState = 0;
+int gameState = 1;
 int gameLevel = 1;
 int currentFrame = 0;
 PVector mouse; 
@@ -29,11 +30,11 @@ PVector tPos;  //turret position of the ship
 PVector tDir;  //turret direction of the ship
 PVector sPos;  //ship position in game
 PVector sDir;  //ship direction in game (not necesary)
+PVector velocity;
 int sSize = 100;  //ship size
 int tSize = 20;  //turrent size
 int shield = 200;  //shield capacity
-int sSpdx = 0;  //ship x speed
-int sSpdy = 0;  //ship y speed
+float sSpd = 20;
 
 //<Enemy Variables>
 PVector ePos;  //enemy positon
@@ -44,7 +45,7 @@ int eneAimRate = 30;
 int spawnRate = 60;
 
 //<Loot Variables>
-
+int score;
 
 void setup() {  //basic game set-up
   fullScreen(P3D);
@@ -55,7 +56,8 @@ void setup() {  //basic game set-up
 void init() {  //initialize preload variables
   font1 = loadFont("HarlowSolid-48.vlw");
   font2 = loadFont("Corbel-BoldItalic-48.vlw");
-
+  
+  velocity = new PVector();
   sPos = new PVector (width/2, height/2);
 }
 
@@ -80,6 +82,37 @@ void preGame() {  //loading pregame scene and bgm-->minim
 void spawnEnemy() {  //spawning enemy, running when game() is called
 }
 
+void keyPressed() {
+  moveShip();
+}
+
+void moveShip() {
+  //moving ship
+  if (key == 'W' || key == 'w') {
+    velocity.y = - sSpd;
+  } else if (key == 'S' || key == 's') {
+    velocity.y =  sSpd;
+  }
+  
+  if (key == 'A' || key == 'a') {
+    velocity.x = - sSpd;
+  } else if (key == 'D' || key == 'd') {
+    velocity.x = sSpd;
+  }
+  fill(0);
+  text(sPos.x, 100, 100);
+  text(sPos.y, 100, 150);
+}
+
+void keyReleased(){
+  if (key == 'W' || key == 'w' || key == 'S' || key == 's'){
+    velocity.y = 0;
+  }
+  if (key == 'A' || key == 'a' || key == 'D' || key == 'd'){
+    velocity.x = 0;
+  }
+}
+
 void mouseClicked() {
 }
 
@@ -94,7 +127,7 @@ void game() {  //loading playing state
   //boolean gameNotPause = true;  //check if the game was paused
 
   background (255);
-
+  score = 0;
 
   //if (gameNotPause) {  //if the game is not paused 
 
@@ -102,21 +135,13 @@ void game() {  //loading playing state
   spawnEnemy();
 
   //drawing starship and turret
-  PImage ship = loadImage("starship/ship01.png");  //loading the ship of player image
+  PImage shipS = loadImage("starship/ship_S.png");  //loading the ship of player image
   //PImage turret = loadImage("turret/turret.png");  //loading the turret of the ship image
-  image(ship, sPos.x, sPos.y, 192, 256);  //displaying the ship
+  image(shipS, sPos.x, sPos.y, 192, 256);  //displaying the ship
   //image(turret, width/2, height/2, 300, 300);   //displaying the turret
-
-  //moving ship
-  if (keyPressed && key == 'W') {
-    sPos.y -= 20;
-  } else if (keyPressed && key == 'S') {
-    sPos.y += 20;
-  } else if (keyPressed && key == 'A') {
-    sPos.x -= 20;
-  } else if (keyPressed && key == 'D') {
-    sPos.x += 20;
-  }
+  keyPressed();
+  
+  sPos.add(velocity);
 
   //hit detection
 
@@ -127,6 +152,11 @@ void game() {  //loading playing state
 }
 
 void gameOver() {  //loading gameover scene
+  if (shield <= 0) {
+    gameState = 0;
+    shield = 200;
+    score = 0;
+  }
 }  
 
 void draw() {  //running all functions
