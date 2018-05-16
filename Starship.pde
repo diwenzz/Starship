@@ -56,9 +56,11 @@ PVector[] eVel;  //enemy velocity
 float eSpeed = 2;  //enemy speed
 float enemy01Width = 73;
 float enemy01Height = 54;
+float bossWidth = 388;
+float bossHeight = 505;
 int eneAimRate = 30;  //enemy aimming player rate
 int spawnRate = 60;  //enemy spawn rate
-int numEne = 10;  //amount of the enemy
+int numEne = 5;  //amount of the enemy
 int eShield = 100;  //enemy shield amount
 PImage enemy01;
 PImage bossL;
@@ -98,16 +100,20 @@ void init() {  //initialize preload variables
   velocity = new PVector();  //declearing ship veolicity
   sPos = new PVector (width/2, height/2);  //declearing ship starting position
   tPos = new PVector (width/2, height/2);
-
+  shipS = loadImage("starship/ship_S.png");  //loading the image of player ship from file
+  
   //<Turret>
   missileVel = new PVector();  
   missilePoss = new PVector[100];
-  missileVels = new PVector[100];
-
+  missileVels = new PVector[100]; 
+  missileT = loadImage("turret/missile/missile01.png");  //loading the image of missile turret from file
+  missileB = loadImage("turret/missile/missile01_b.png");  //loading the image of missile bullet from file
+  
   //<Enemy>
   ePos = new PVector[numEne];
   eVel = new PVector[numEne];
   enemy01 = loadImage("enemy/enemy01.png");
+  bossL = loadImage("boss/boss_L.png");
 }  //end of ini() function
 
 void preGame() {  //loading pregame scene and bgm-->minim
@@ -125,6 +131,9 @@ void preGame() {  //loading pregame scene and bgm-->minim
 }  //end of the pregame() function
 
 void spawnEnemy() {  //spawning enemy, running when game() is called
+  
+  
+  image(bossL, width/2, 120, bossWidth * 0.5, bossHeight * 0.5);
   //if the framerate is 60*n, spawn enemy   
   if (frameCount % spawnRate == 0) {
     //scan the array looking for avaiable one
@@ -153,12 +162,6 @@ PVector aim(PVector ePos, PVector tPos, PVector vel, int aimRate) {
   }
   return vel;
 }  //end of enemy aiming player
-
-void drawBoss() {
-  bossL = loadImage("boss/boss_L");
-  image(bossL, width/2, 100);
-}
-
 
 void keyPressed() {
   moveShip();
@@ -236,14 +239,14 @@ void game() {  //Playing state
       //update enemy velocity
       eVel[i] = aim(ePos[i], tPos, eVel[i], eneAimRate);
       ePos[i].add(eVel[i]);
-      image(enemy01, ePos[i].x, ePos[i].y, enemy01Width * 1.5, enemy01Height * 1.5);
+      image(enemy01, ePos[i].x, ePos[i].y, enemy01Width, enemy01Height);
 
       /*
       //not working 
        pushMatrix();  //start of matrix transformations
        translate(ePos[i].x, ePos[i].y);  //moves the origin to the turret position
        rotate(eVel[i].heading() + HALF_PI);  //rotates the coordinate system by tDirection degrees
-       image(enemy01, ePos[i].x, ePos[i].y, enemy02Width * 1.5, enemy02Height * 1.5);
+       image(enemy01, ePos[i].x, ePos[i].y, enemy01Width * 1.5, enemy01Height * 1.5);
        popMatrix();  //undo all the transformations
        */
     }  //end of drawing enemy
@@ -251,9 +254,6 @@ void game() {  //Playing state
 
 
   //<Drawing starship and turret>
-  shipS = loadImage("starship/ship_S.png");  //loading the image of player ship from file
-  missileT = loadImage("turret/missile/missile01.png");  //loading the image of missile turret from file
-  missileB = loadImage("turret/missile/missile01_b.png");  //loading the image of missile bullet from file
   image(shipS, sPos.x, sPos.y, sWidth * 1.5, sHeight * 1.5);  //displaying the player ship image 
 
   //<Moving ship>
