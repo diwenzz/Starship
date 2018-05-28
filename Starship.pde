@@ -1,3 +1,5 @@
+import g4p_controls.*;
+
 import ddf.minim.*;
 import ddf.minim.analysis.*;
 import ddf.minim.effects.*;
@@ -8,13 +10,11 @@ import ddf.minim.ugens.*;
 /*
 5-24-2018
  Starship gmaes
- Verision 1.2 Alpha
+ Verision 1.3 Alpha
  @Diwen Wang
  
  FINISHED:
- - Better UI
- - Hit detection
- - Bugs fixes
+ - Game state changes
  
  TO_DO: 
  - Boss attack
@@ -30,16 +30,18 @@ int currentFrame = 0;  //current fame count
 PVector mouse;  //mouse vector
 PFont font1;  //font of displaying title
 PFont font2;  //font of displaying instruction
-int score;  //game score, gain score after eliminte enemy
+int score;  //game score
+float ui1Width;  //width of the ui1 image
+float ui1Height;  //height of the ui1 image
 
 //<Starship Variables>
 PVector sPos;  //ship position in game
-PVector sDir;  //ship direction in game (not necesary)
+PVector sDir;  //ship direction in game (Not used)
 PVector velocity;  //ship moving velocity
 int shield = 500;  //shield capacity
 float sSpd = 20;  //ship moving speed
-float sWidth = 96;  //ship width
-float sHeight = 128;  //ship height
+float sWidth = 96;  //ship image width
+float sHeight = 128;  //ship image height
 PImage shipS;  //loading the image of player ship from file
 
 //<Turret Variables>
@@ -50,7 +52,7 @@ PVector [] missilePoss;  //**
 PVector missileVel;  //missile bullet velocity
 PVector [] missileVels;  //**
 float missileSpeed = 10;  //missile bullet moving spped
-float tSize = 60;
+float tSize = 60;  //turret size
 float missileTWidth = 30;  //missile turret width
 float missileTHeight = 29;  //missile turret height
 float missileWidth = 33;  //missile width
@@ -89,10 +91,12 @@ int eShield = 100;  //enemy shield amount
 PImage enemy01;  //enemy image variables
 PImage bossL;  //boss image variables
 
-//<Background>
+//<Image>
 PImage gameBackground;  //loading game background from file
 PImage bgShip;  //loading background ship from file
 PImage bgUni;  //loading the background universe from file
+PImage gameOverBackground;  //loading gameover background form file
+PImage ui1;  //loading ui1 image from file
 
 void setup() {  //basic game set-up
 
@@ -100,18 +104,16 @@ void setup() {  //basic game set-up
   frameRate(60);  //set fps to 60
   init();
   imageMode(CENTER);  //set image mode to center
-  if (gameState == 0) {
-    bgShip = loadImage("background/background1.png");  //loading background ship from file
-    bgShip.resize(1098, 725);
-    bgUni = loadImage("background/backgroundU.png");  //loading the background universe from file
-    bgUni.resize(displayWidth, displayHeight);
-  } else if (gameState == 1) {
-    gameBackground = loadImage("background/gamebackground.jpg");
-    gameBackground.resize(displayWidth, displayHeight);
-  }
 }
 
 void init() {  //initialize preload variables
+  //<Background>
+  bgUni = loadImage("background/backgroundU.png");  //loading the background universe from file
+  bgUni.resize(displayWidth, displayHeight);
+  gameBackground = loadImage("background/gamebackground.jpg");
+  gameBackground.resize(displayWidth, displayHeight);
+  gameOverBackground = loadImage("background/gameover.jpg");
+  gameOverBackground.resize(displayWidth, displayHeight);
 
   //<Font>
   font1 = loadFont("HarlowSolid-48.vlw");
@@ -120,8 +122,10 @@ void init() {  //initialize preload variables
   //<Ship>
   velocity = new PVector();  //declearing ship veolicity
   sPos = new PVector (width/2, height/2 + 300);  //declearing ship starting position
-  tPos = new PVector (width/2, height/2);
+  tPos = new PVector (width/2, height/2);  //decleaing turret starting position
   shipS = loadImage("starship/ship_S.png");  //loading the image of player ship from file
+  bgShip = loadImage("background/background1.png");  //loading background ship from file
+  bgShip.resize(1098, 725);  //resize bgShip size to suitable size
 
   //<Turret>
   missileVel = new PVector();  //missile velocity
@@ -140,6 +144,11 @@ void init() {  //initialize preload variables
   bossMissileVelsR = new PVector[100];
   enemy01 = loadImage("enemy/enemy01.png");  //loading enemy01 image from file
   bossL = loadImage("boss/boss_L.png");  //loading boss_L image from file
+
+  //<UI>
+  ui1 = loadImage("UI/ui1.jpg");
+  ui1Width = 564;
+  ui1Height = 423;
 }  //end of ini() function
 
 void preGame() {  //loading pregame scene and bgm-->minim
@@ -150,7 +159,7 @@ void preGame() {  //loading pregame scene and bgm-->minim
   //text title
   fill(0, 150, 200);  //color blue
   textFont(font1, 100);  //font 1
-  text("Starship", width/2 + 200, height/2 + 200);
+  text("Starship", width/2 + 200, height/2 + 200);  //text game title
   textFont(font2, 70);  //font 2
   text("PRESS \'ENTER\' TO PLAY", width/2 - 100, height/2 + 350);  //text the information of the game
   startGame();  //start game when enter is clicked
@@ -226,7 +235,7 @@ void spawnBoss() {
   //draw the right missile when fire
   if (bossMissilePosR != null) {
     pushMatrix();  //start of matrix transformations
-    translate(bossMissilePosL.x, bossMissilePosL.y);  //moves the origin to the turret position
+    translate(bossMissilePosR.x, bossMissilePosR.y);  //moves the origin to the turret position
     rotate(missileVel.heading() + HALF_PI);  //rotates the coordinate system by missile direction
     image(missileB, 0, 0, missileWidth * 0.8, missileHeight * 0.8);  //drawing right missile when fired
     popMatrix();  //undo all the transformations
@@ -239,6 +248,26 @@ void spawnBoss() {
   image(missileT, 0, 0, missileTWidth * 1.5, missileTHeight * 1.5);  //drawing right missile turret
   image(missileB, 0, 0, missileWidth * 0.8, missileHeight * 0.8);  //drawing right missile on the right turret
   popMatrix();  //undo all the transformations
+
+  //<Boss Turret Fire> <<<----------------------------------------UNDER TESTING------------------------------------------------->>>
+  //if the left missile is null then it is available to be fired again
+  if (bossMissilePosL == null) {
+    bossMissilePosL = new PVector(bossLeftTurret.x, bossLeftTurret.y);//setting the bullets initial position to the turret position
+    bossMissileVelL.set(bossTDirL);//get the direction the bullet should travel
+    bossMissileVelL.normalize();//set the velocity to one so we can scale it
+    bossMissileVelL.mult(missileSpeed);
+    bossMissilePosL.add(bossTDirL);//makes the bullet starting position the end of the barrel
+  }
+
+  for (int i = 0; i < bossMissilePossL.length; i++) {
+    if (bossMissilePossL[i] == null) {
+      bossMissilePossL[i] = new PVector(bossLeftTurret.x, bossLeftTurret.y);
+      bossMissileVelsL[i]= new PVector(bossTDirL.x, bossTDirL.y);
+      bossMissileVelsL[i].normalize();
+      bossMissileVelsL[i].mult(missileSpeed);
+      return; //<==return this
+    }
+  }
 }
 
 void spawnEnemy() {  //spawning enemy, running when game() is called
@@ -353,7 +382,7 @@ void game() {  //Playing state
       /*print(ePos[i].dist(missilePos), displayWidth/2, displayHeight/2);
        if (ePos[i].dist(missilePos) < (missileWidth + enemy01Width)/2) {
        print("Crashed");
-       }*/  //    <<<Fix it>>>
+       }*/      //    <<<Fix the enemy crashes>>>
     }  //end of drawing enemy
   }  //end of the ePos
 
@@ -418,15 +447,16 @@ void game() {  //Playing state
 
   //fire cooldown
   textFont(font2, 20);
-  text("Fire Cooldown", displayWidth - 140, displayHeight/2 - 60);
+  text("Fire Cooldown", displayWidth - 140, displayHeight/2 - 60);  //text fire cooldown remind
   ellipse(displayWidth - 80, displayHeight/2, 80, 80);
 
   //<Hit detection>
   fill(0, 150, 200);
-  rect(0, height/2 - shield/2, 30, shield);  //drawing health bar
+  rect(0, displayHeight/2 - shield/2, 30, shield);  //drawing health bar
+  image(ui1, displayWidth - ui1Width/4, displayHeight - ui1Height/4, ui1Width * 0.6, ui1Height * 0.6 );  //drawing ui image
 
   if (sPos.dist(bossPos) < (sWidth + enemy01Width)/2) {
-    shield --;
+    shield -= 5;
   }  //boss hit detection
 
   //<Gamelevel>
@@ -435,17 +465,27 @@ void game() {  //Playing state
   }
 
   //<Restart Game>
-  //gameOver();
+  if (shield <= 0) {
+    gameState = 2;
+  }
 }  //end of the game() function
 
 void gameOver() {  //loading gameover scene
+  image(gameOverBackground, width/2, height/2);
+  textFont(font1, 100);  //font 1
+  text("Game Over", width/2 + 50, height/2 + 200);  //text game over
+  textFont(font2, 70);  //font 2
+  text("PRESS \'ENTER\' TO RESTART", width/2 - 200, height/2 + 350);  //text the information to restart the game
 
-  if (shield <= 0) {
-    gameState = 0;
-    gameLevel = 1;
-    shield = 500;
-    score = 0;
-  }
+  //<Reset Variables>
+  shield = 500;
+  score = 0;
+  gameLevel = 1;
+  sPos = new PVector (width/2, height/2 + 300);  //re-declearing ship starting position
+  tPos = new PVector (width/2, height/2);  //re-declearing turret starting position
+  ePos = new PVector[numEne];  //re-declearing each enemy position
+  eVel = new PVector[numEne];  //re-declearing each enemy velocity
+  startGame();
 }  //end of gameover function
 
 void draw() {  //running all functions
